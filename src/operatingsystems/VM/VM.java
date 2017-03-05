@@ -18,9 +18,9 @@ public class VM {
     public Disk disk;
     public ArrayList<CPU> cpus;
     
-    public OS os;
-    
-    public VM(int numberCPUs, OS os) {
-	throw new NotImplementedException();
+    public VM(int numberCPUs) {
+	for (byte i = 0; i < numberCPUs; i++) {
+	    this.cpus.add(new CPU(this, i));
+	}
     }
 }

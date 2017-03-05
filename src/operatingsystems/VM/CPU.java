@@ -265,7 +265,6 @@ public class CPU {
 			
 		    case Opcode.HLT:
 			this.state = CPUState.WAITING;
-			this.currentProgram = null;
 			this.PC = 0;
 			this.IR = 0;
 			return;

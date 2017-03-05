@@ -40,4 +40,16 @@ public class MMU {
     public void write(Program program, int offset, int value) {
 	this.ram.write(program.memoryAddress + offset, value);
     }
+    
+    /**
+     * Writes words to a program's RAM
+     * @param program
+     * @param offset
+     * @param value s
+     */
+    public void write(Program program, int offset, int[] values) {
+	for (int i = 0; i < values.length; i++) {
+	    this.ram.write(program.memoryAddress + offset + i, values[i]);
+	}
+    }
 }

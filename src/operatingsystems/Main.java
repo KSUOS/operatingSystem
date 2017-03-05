@@ -5,6 +5,9 @@
  */
 package operatingsystems;
 
+import operatingsystems.OS.*;
+import operatingsystems.VM.*;
+
 /**
  *
  * @author brandon
@@ -14,8 +17,13 @@ public class Main {
     /**
      * @param args the command line arguments
      */
-    public static void main(String[] args) {
-	// TODO code application logic here
+    public static void main(String[] args) throws Exception {
+	Scheduler s = null;
+	
+	VM vm = new VM(4);
+	OS os = new OS(s,vm);
+	
+	os.run("ProgramFile.txt");
     }
     
 }
