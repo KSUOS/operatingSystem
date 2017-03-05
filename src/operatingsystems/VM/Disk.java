@@ -9,53 +9,57 @@ import java.io.File;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
- * 
+ * Reads raw words from the binary disk file "DataFile"
  * @author brandon
  */
 public class Disk {
-    
+
     private VM vm;
     private int[] buffer = new int[2048];
     private File file;
-    
+
     public Disk(VM vm) {
 	this.vm = vm;
-	
+
 	this.file = new File("DataFile");
     }
-    
+
     /**
      * Read a word from the disk
+     *
      * @param offset
-     * @return 
+     * @return
      */
     public int read(int offset) {
 	throw new NotImplementedException();
     }
-    
+
     /**
      * Read multiple words from the disk
+     *
      * @param offset
      * @param length
-     * @return 
+     * @return
      */
     public int[] read(int offset, int length) {
 	throw new NotImplementedException();
     }
-    
+
     /**
      * Write a word to the disk
+     *
      * @param offset
-     * @param word 
+     * @param word
      */
     public void write(int offset, int word) {
 	throw new NotImplementedException();
     }
-    
+
     /**
      * Write multiple words to the disk
+     *
      * @param offset
-     * @param words 
+     * @param words
      */
     public void write(int offset, int[] words) {
 	throw new NotImplementedException();

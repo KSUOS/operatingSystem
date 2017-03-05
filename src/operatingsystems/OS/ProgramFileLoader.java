@@ -5,6 +5,7 @@
  */
 package operatingsystems.OS;
 
+import java.io.File;
 import operatingsystems.VM.*;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -15,11 +16,19 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 public class ProgramFileLoader {
     
     private VM vm;
+    private File file;
+    
     public ProgramFileLoader(VM vm) {
 	this.vm = vm;
     }
     
+    /**
+     * Opens the file, creates a Program, loading the opcodes into the vm disk beginning at offset 0 and add the Program to this.os.programs
+     * @param filename 
+     */
     public void load(String filename) {
+	this.file = new File(filename);
+	
 	throw new NotImplementedException();
     }
 }

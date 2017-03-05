@@ -28,6 +28,7 @@ public class OS {
     public OS(Scheduler scheduler, VM vm) {
 	this.scheduler = scheduler;
 	this.vm = vm;
+	this.vm.os = this;
 	this.pfl = new ProgramFileLoader(vm);
     }
     

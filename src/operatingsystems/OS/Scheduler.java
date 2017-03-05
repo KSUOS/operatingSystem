@@ -18,5 +18,6 @@ public abstract class Scheduler {
 	this.os = os;
     }
     
+    // Moves programs from the waiting queue of the os into the ready queue
     public abstract void schedule();
 }
