@@ -12,7 +12,8 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
  * @author brandon
  */
 public class RAM {
-    private int[] memory = new int[1024];
+    public static final int LENGTH = 1024;
+    private int[] memory = new int[RAM.LENGTH];
     
     private VM vm;
     
@@ -37,6 +38,6 @@ public class RAM {
      */
     void write(int offset, int word) {
 	if (offset > 1024 || offset < 0) throw new Error("Memory write offset out of bounds");
-	throw new NotImplementedException();
+	this.memory[offset] = word;
     }
 }

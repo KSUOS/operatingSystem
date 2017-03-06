@@ -28,7 +28,7 @@ public class ProgramFileLoader {
      *
      * @param filename
      */
-    public void load(String filename) {
+    public void load(String filename) throws InterruptedException {
 	this.file = new File(filename);
 	try {
 	    BufferedReader br = new BufferedReader(new FileReader(filename));
@@ -47,6 +47,7 @@ public class ProgramFileLoader {
 			this.os.programs.add(currentProgram);
 			currentProgram.pid = Integer.parseInt(s[2], 16);
 			currentProgram.instructionCount = Integer.parseInt(s[3], 16);
+			currentProgram.priority = Integer.parseInt(s[4], 16);
 			currentProgram.diskAddress = instructionno;
 		    } 
 		    /*

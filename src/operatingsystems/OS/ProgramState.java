@@ -3,14 +3,15 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package operatingsystems.VM;
+package operatingsystems.OS;
 
 /**
  *
  * @author brandon
  */
-
-public enum CPUState {
+public enum ProgramState {
+    WAITING,
+    READY,
     RUNNING,
-    HALTED
+    DONE
 }

@@ -5,6 +5,7 @@
  */
 package operatingsystems.VM;
 
+import java.util.NoSuchElementException;
 import operatingsystems.OS.*;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -52,17 +53,15 @@ class Type {
  *
  * @author brandon
  */
-public class CPU {
+public class CPU extends Thread {
     public byte cpuId = 0;
     
     /**
      * If CPUState.WAITING, the CPU has nothing to do
      */
-    public CPUState state = CPUState.WAITING;
+    public CPUState state = CPUState.HALTED;
     
     public Program currentProgram = null;
-    
-    private int[] registers = new int[16];
     
     /**
      * Program counter
@@ -74,10 +73,17 @@ public class CPU {
      */
     private int IR = 0;
     
+    private int[] registers = new int[16];
+    
     /**
      * Parent driver
      */
     private VM vm = null;
+    
+    /**
+     * Instance of OS for access to the scheduler
+     */
+    public OS os = null;
     
     /**
      * Initialize a CPU with the driver owner and 0-based CPU identifier
@@ -87,6 +93,7 @@ public class CPU {
     public CPU(VM vm, byte cpuId) {
 	this.vm = vm;
 	this.cpuId = cpuId;
+	this.setName("CPU #" + cpuId);
     }
     
     /**
@@ -95,7 +102,7 @@ public class CPU {
      * @return 
      */
     private int memoryRead(int offset) {
-	return this.vm.mmu.read(this.currentProgram, offset);
+	return this.vm.mmu.read(this.currentProgram, offset / 4);
     }
     
     /**
@@ -104,29 +111,30 @@ public class CPU {
      * @return 
      */
     private void memoryWrite(int offset, int value) {
-	this.vm.mmu.write(this.currentProgram, offset, value);
+	this.vm.mmu.write(this.currentProgram, offset / 4, value);
     }
     
     /**
      * Read the instruction located at the PC into the IR
      */
     private void fetch() {
-	this.IR = this.memoryRead(this.PC);
+	this.IR = this.vm.mmu.read(this.currentProgram, this.PC);
     }   
     
     /**
      * Fetch instruction, parse, and execute current instruction
      */
-    public void execute() {
+    private void execute() throws InterruptedException {
 	// No program to execute
 	if (this.currentProgram == null) {
-	    this.state = CPUState.WAITING;
+	    this.state = CPUState.HALTED;
 	    return;
 	}
 	
 	// Program done
 	if (this.PC >= this.currentProgram.instructionCount) {
-	    this.state = CPUState.WAITING;
+	    System.out.println("CPU #" + this.cpuId + " - PC tried to go outside of instructionCount. Halting");
+	    this.state = CPUState.HALTED;
 	    return;
 	}
 	
@@ -218,37 +226,37 @@ public class CPU {
 			
 		    case Opcode.BEQ:
 			if (this.registers[bReg] == this.registers[dReg]) {
-			    this.PC = address;
+			    this.PC = address / 4;
 			}
 			break;
 			
 		    case Opcode.BNE:
 			if (this.registers[bReg] != this.registers[dReg]) {
-			    this.PC = address;
+			    this.PC = address / 4;
 			}
 			break;
 			
 		    case Opcode.BEZ:
 			if (this.registers[bReg] == 0) {
-			    this.PC = address;
+			    this.PC = address / 4;
 			}
 			break;
 			
 		    case Opcode.BNZ:
 			if (this.registers[bReg] != 0) {
-			    this.PC = address;
+			    this.PC = address / 4;
 			}
 			break;
 			
 		    case Opcode.BGZ:
 			if (this.registers[bReg] > 0) {
-			    this.PC = address;
+			    this.PC = address / 4;
 			}
 			break;
 			
 		    case Opcode.BLZ:
 			if (this.registers[bReg] < 0) {
-			    this.PC = address;
+			    this.PC = address / 4;
 			}
 			break;
 		}
@@ -260,11 +268,11 @@ public class CPU {
 		
 		switch (opcode) {
 		    case Opcode.JMP:
-			this.PC = address;
+			this.PC = address / 4;
 			break;
 			
 		    case Opcode.HLT:
-			this.state = CPUState.WAITING;
+			this.state = CPUState.HALTED;
 			this.PC = 0;
 			this.IR = 0;
 			return;
@@ -291,6 +299,39 @@ public class CPU {
 	}
 	
 	this.PC++;
-	this.state = CPUState.EXECUTING;
+    }
+    
+    /**
+     * The run loop of the CPU
+     */
+    public void run() {
+	while (true) {
+	    try {
+		if (this.state == CPUState.HALTED) {
+		    if (this.currentProgram != null) {
+			// tell scheduler that I have finished
+			System.out.println("CPU #" + this.cpuId + " - Finished executing Program " + this.currentProgram.pid);
+			this.os.onHalted(this);
+		    }
+
+		    // Wait for a new program to run
+		    System.out.println("CPU #" + this.cpuId + " - Waiting for scheduler");
+		    
+		    this.os.schedule(this);
+		    if (this.currentProgram == null) return;
+		    
+		    System.out.println("CPU #" + this.cpuId + " - Program " + this.currentProgram.pid + " scheduled");
+
+		    this.state = CPUState.RUNNING;
+		}
+		else {
+		    this.execute();
+		}
+	    }
+	    catch (InterruptedException e) {
+		System.out.println("Got interupt");
+		if (this.vm.shuttingDown) return;
+	    }
+	}
     }
 }

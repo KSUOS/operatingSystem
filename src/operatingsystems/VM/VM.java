@@ -17,12 +17,23 @@ public class VM {
     public MMU mmu;
     public Disk disk;
     public ArrayList<CPU> cpus = new ArrayList<CPU>();
+    public boolean shuttingDown = false;
     
     public VM(int numberCPUs) {
 	this.disk = new Disk(this);
 	this.mmu = new MMU(this);
 	for (byte i = 0; i < numberCPUs; i++) {
 	    this.cpus.add(new CPU(this, i));
+	}
+    }
+    
+    public void shutdown() throws InterruptedException {
+	this.shuttingDown = true;
+	Thread self = Thread.currentThread();
+	for (CPU cpu : this.cpus) {
+	    if (cpu != self) {
+		cpu.interrupt();
+	    }
 	}
     }
 }

@@ -6,6 +6,7 @@
 package operatingsystems.OS;
 
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import operatingsystems.VM.*;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -14,87 +15,78 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
  * @author brandon
  */
 public class OS {
-    public ProgramFileLoader pfl;
+    private ProgramFileLoader pfl;
     public VM vm;
     
     public ArrayList<Program> programs = new ArrayList<Program>();
     
-    public ArrayDeque<Program> readyQueue = new ArrayDeque<Program>();
-    public ArrayDeque<Program> waitingQueue = new ArrayDeque<Program>();
-    public ArrayDeque<Program> doneQueue = new ArrayDeque<Program>();
-    
-    public Scheduler scheduler;
-    
-    public int usedMemory = 0;
-    
+    private Scheduler scheduler;    
     
     public OS(Scheduler scheduler, VM vm) {
 	this.scheduler = scheduler;
+	this.scheduler.os = this;
 	this.vm = vm;
 	this.pfl = new ProgramFileLoader(this);
     }
     
-    /**
-     * Loads, schedules, and runs all programs
-     */
-    public void run(String filename) throws InterruptedException {
-	// Load programs onto disk
+    public void load(String filename) throws InterruptedException {
 	this.pfl.load(filename);
+	this.vm.disk.delay = 10000;
+    }
+    
+    /**
+     * Schedules and runs all programs from the specified filename
+     * @throws java.lang.InterruptedException
+     */
+    public void run() throws InterruptedException {
+	// Add programs to the scheduler
+	for (Program p : this.programs) {
+	    System.out.println("Adding program " + p);
+	    this.scheduler.addProgram(p);
+	    /* noop */System.out.print("");
+	}
 	
-	// Schedule programs
-	this.scheduler.schedule();
-	
-	ArrayList<CPUThread> cpuThreads = new ArrayList<CPUThread>();
-	// Create CPU execution threads
 	for (CPU cpu : this.vm.cpus) {
-	    CPUThread t = new CPUThread(this, cpu);
-	    cpuThreads.add(t);
-	    t.start();
+	    cpu.os = this;
+	    cpu.start();
 	}
 	
-	for (CPUThread t : cpuThreads) {
-	    t.join();
+	this.scheduler.load(); // Load programs into memory after starting the CPUs so they can start working as it loads the programs
+	
+	for (CPU cpu : this.vm.cpus) {
+	    cpu.join();
 	}
     }
-}
-
-class CPUThread extends Thread {
     
-    private CPU cpu;
-    private OS os;
-    public CPUThread(OS os, CPU cpu) {
-	this.cpu = cpu;
-	this.os = os;
+    /**
+     * Load a new program into the CPU when ready
+     * @param cpu 
+     * @throws java.lang.InterruptedException 
+     */
+    public void schedule(CPU cpu) throws InterruptedException {
+	if (!this.scheduler.programsWaiting() && !this.scheduler.programsReady() && !this.scheduler.programsRunning()) {
+	    this.shutdown();
+	    return;
+	}
+	this.scheduler.schedule(cpu);
     }
     
-    public void run() {
-	while (true) {
-	    if (this.cpu.state == CPUState.WAITING) {
-		if (this.cpu.currentProgram != null) {
-		    //unload from memory
-		    this.os.doneQueue.add(this.cpu.currentProgram);
-		}
-		
-		this.os.scheduler.schedule();
-		
-		try {
-		    this.cpu.currentProgram = this.os.readyQueue.pop();
-		}
-		catch (NoSuchElementException e) {
-		    return;
-		}
-		
-		//Load program into memory
-		this.cpu.currentProgram.memoryAddress = this.os.usedMemory + 1;
-		this.os.usedMemory += this.cpu.currentProgram.memoryAddress;
-		
-		int[] program = this.os.vm.disk.read(this.cpu.currentProgram.diskAddress, this.cpu.currentProgram.instructionCount);
-		this.os.vm.mmu.write(this.cpu.currentProgram, 0, program);
-		
-		this.cpu.state = CPUState.EXECUTING;
-	    }
-	    
-	    cpu.execute();
+    /**
+     * Called by the CPU when the CPU has finished processing
+     * @param cpu 
+     */
+    public synchronized void onHalted(CPU cpu) throws InterruptedException {
+	// Save output buffer
+	int[] outputBuffer = new int[cpu.currentProgram.outputBufferSize];
+	for (int i = 0; i < cpu.currentProgram.outputBufferSize; i++) {
+	    outputBuffer[i] = this.vm.mmu.read(cpu.currentProgram, cpu.currentProgram.instructionCount + cpu.currentProgram.inputBufferSize + i);
 	}
+	this.vm.disk.write(cpu.currentProgram.diskAddress + cpu.currentProgram.instructionCount + cpu.currentProgram.inputBufferSize, outputBuffer);
+	
+	this.scheduler.haltHandler(cpu);
+    }
+    
+    public synchronized void shutdown() throws InterruptedException {
+	this.vm.shutdown();
     }
 }

@@ -6,6 +6,7 @@
 package operatingsystems.VM;
 
 import java.io.File;
+import java.util.Arrays;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
@@ -13,10 +14,13 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
  * @author brandon
  */
 public class Disk {
+    public static final int length = 2048;
 
     private VM vm;
-    private int[] buffer = new int[2048];
+    private int[] buffer = new int[Disk.length];
     private File file;
+    
+    public int delay = 0;
 
     public Disk(VM vm) {
 	this.vm = vm;
@@ -30,8 +34,9 @@ public class Disk {
      * @param offset
      * @return
      */
-    public int read(int offset) {
-	throw new NotImplementedException();
+    public int read(int offset) throws InterruptedException {
+	Thread.sleep(0,this.delay); //TODO remove
+	return this.buffer[offset];
     }
 
     /**
@@ -41,8 +46,9 @@ public class Disk {
      * @param length
      * @return
      */
-    public int[] read(int offset, int length) {
-	throw new NotImplementedException();
+    public int[] read(int offset, int length) throws InterruptedException {
+	Thread.sleep(0,this.delay); //TODO remove
+	return Arrays.copyOfRange(this.buffer, offset, offset + length);
     }
 
     /**
@@ -51,8 +57,9 @@ public class Disk {
      * @param offset
      * @param word
      */
-    public void write(int offset, int word) {
-	throw new NotImplementedException();
+    public void write(int offset, int word) throws InterruptedException {
+	Thread.sleep(0,this.delay); //TODO remove
+	this.buffer[offset] = word;
     }
 
     /**
@@ -61,7 +68,26 @@ public class Disk {
      * @param offset
      * @param words
      */
-    public void write(int offset, int[] words) {
-	throw new NotImplementedException();
+    public void write(int offset, int[] words) throws InterruptedException {
+	Thread.sleep(0,this.delay); //TODO remove
+	for (int i = offset; i < offset + words.length; i++) {
+	    this.buffer[i] = words[i - offset];
+	}
+    }
+    
+    
+    public void print() throws InterruptedException {
+	int lineSize = 1;
+	for (int i = 0; i < Disk.length / lineSize; i++) {
+	    int[] toWrite = this.read(i, lineSize);
+	    String prefix = "";
+	    for (int j = 0; j < lineSize; j++) {
+		String word = "00000000" + Integer.toHexString(toWrite[j]);
+		word = "0x" + word.substring(word.length() - 8);
+		System.out.print(prefix + word);
+		prefix = " ";
+	    }
+	    System.out.print("\n");
+	}
     }
 }
