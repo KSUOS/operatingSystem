@@ -5,6 +5,7 @@
  */
 package operatingsystems;
 
+import java.io.File;
 import operatingsystems.OS.*;
 import operatingsystems.VM.*;
 
@@ -22,8 +23,8 @@ public class Main {
 	
 	VM vm = new VM(4);
 	OS os = new OS(s,vm);
-	
-	os.run("ProgramFile.txt");
+
+	os.run("./ProgramFile.txt");
     }
     
 }
