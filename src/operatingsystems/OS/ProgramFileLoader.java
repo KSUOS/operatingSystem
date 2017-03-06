@@ -44,11 +44,11 @@ public class ProgramFileLoader {
 		    if (line.contains("JOB")) {
 			String[] s = line.split(" ");
 			currentProgram = new Program();
-			this.os.programs.add(currentProgram);
 			currentProgram.pid = Integer.parseInt(s[2], 16);
 			currentProgram.instructionCount = Integer.parseInt(s[3], 16);
 			currentProgram.priority = Integer.parseInt(s[4], 16);
 			currentProgram.diskAddress = instructionno;
+			this.os.programs.add(currentProgram);
 		    } 
 		    /*
 			Set the Program object's buffer size variables and write buffers into

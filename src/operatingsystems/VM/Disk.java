@@ -19,8 +19,6 @@ public class Disk {
     private VM vm;
     private int[] buffer = new int[Disk.length];
     private File file;
-    
-    public int delay = 0;
 
     public Disk(VM vm) {
 	this.vm = vm;
@@ -35,7 +33,6 @@ public class Disk {
      * @return
      */
     public int read(int offset) throws InterruptedException {
-	Thread.sleep(0,this.delay); //TODO remove
 	return this.buffer[offset];
     }
 
@@ -47,7 +44,6 @@ public class Disk {
      * @return
      */
     public int[] read(int offset, int length) throws InterruptedException {
-	Thread.sleep(0,this.delay); //TODO remove
 	return Arrays.copyOfRange(this.buffer, offset, offset + length);
     }
 
@@ -58,7 +54,6 @@ public class Disk {
      * @param word
      */
     public void write(int offset, int word) throws InterruptedException {
-	Thread.sleep(0,this.delay); //TODO remove
 	this.buffer[offset] = word;
     }
 
@@ -69,7 +64,6 @@ public class Disk {
      * @param words
      */
     public void write(int offset, int[] words) throws InterruptedException {
-	Thread.sleep(0,this.delay); //TODO remove
 	for (int i = offset; i < offset + words.length; i++) {
 	    this.buffer[i] = words[i - offset];
 	}

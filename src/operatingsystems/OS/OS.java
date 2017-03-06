@@ -31,14 +31,13 @@ public class OS {
     
     public void load(String filename) throws InterruptedException {
 	this.pfl.load(filename);
-	this.vm.disk.delay = 10000;
     }
     
     /**
      * Schedules and runs all programs from the specified filename
      * @throws java.lang.InterruptedException
      */
-    public void run() throws InterruptedException {
+    public void run() throws InterruptedException {	
 	// Add programs to the scheduler
 	for (Program p : this.programs) {
 	    System.out.println("Adding program " + p);

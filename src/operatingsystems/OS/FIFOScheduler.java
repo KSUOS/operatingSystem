@@ -14,6 +14,7 @@ public class FIFOScheduler extends Scheduler {
     public synchronized void addProgram(Program p) throws InterruptedException {
 	this.waitingQueue.add(p); // add to end of waiting queue
 	p.state = ProgramState.WAITING;
+	Accounting.onProgramStateChange(p);
 	this.waitingLock.release(); // release a permit
     }
 }

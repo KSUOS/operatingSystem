@@ -23,12 +23,17 @@ public class Program {
     public int outputBufferSize = 0;
     public int tempBufferSize = 0;
     
+    public int ioOperations = 0;
+    public int instructionsExecuted = 0;
+    
     public final int size() {
 	return this.instructionCount + this.inputBufferSize + this.outputBufferSize + this.tempBufferSize;
     }
     
     @Override
     public String toString() {
-	return "Program " + this.pid + " (" + this.state.toString() + ")";
+	String pidString = "00" + Integer.toString(this.pid);
+	pidString = pidString.substring(pidString.length() - 2);
+	return "Program " + pidString;
     }
 }

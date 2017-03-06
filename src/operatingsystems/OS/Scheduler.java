@@ -63,6 +63,7 @@ public abstract class Scheduler {
 		    System.out.println("Adding program " + program.pid + " to the ready queue");
 		    this.readyQueue.add(program);
 		    program.state = ProgramState.READY;
+		    Accounting.onProgramStateChange(program);
 		    
 		    this.readyLock.release();
 		}
@@ -103,6 +104,7 @@ public abstract class Scheduler {
 	this.runningQueue.remove(cpu.currentProgram);
 	this.doneQueue.add(cpu.currentProgram);
 	cpu.currentProgram.state = ProgramState.DONE;
+	Accounting.onProgramStateChange(cpu.currentProgram);
 	cpu.currentProgram = null;
 	this.load();
     }
@@ -114,10 +116,13 @@ public abstract class Scheduler {
      */
     public void schedule(CPU cpu) throws InterruptedException {
 	this.readyLock.acquire();
-	Program currentProgram = this.readyQueue.pop();
-	cpu.currentProgram = currentProgram;
+	synchronized(readyQueue) {
+	    Program currentProgram = this.readyQueue.pop();
+	    cpu.currentProgram = currentProgram;
 	
-	runningQueue.add(currentProgram);
-	currentProgram.state = ProgramState.RUNNING;
+	    runningQueue.add(currentProgram);
+	    currentProgram.state = ProgramState.RUNNING;
+	    Accounting.onProgramStateChange(currentProgram);
+	}
     }
 }

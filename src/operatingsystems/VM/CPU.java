@@ -140,7 +140,6 @@ public class CPU extends Thread {
 	
 	this.fetch();
 	
-	
 	byte type = (byte)(this.IR >> 30 & 0b11);
 	byte opcode = (byte)(this.IR >> 24 & 0b111111);
 	
@@ -151,6 +150,8 @@ public class CPU extends Thread {
 	final int fourBits = 0b1111;
 	final int sixteenBits = 0b1111111111111111;
 	final int twentyFourBits = 0b111111111111111111111111;
+	
+	this.currentProgram.instructionsExecuted++;
 	
 	switch (type) {
 	    case Type.Arithmetic:
@@ -190,6 +191,10 @@ public class CPU extends Thread {
 		    case Opcode.SLT:
 			this.registers[dReg] = (this.registers[sReg1] < this.registers[sReg2] ? 1 : 0);
 			break;
+			
+		    case Opcode.SLTI:
+			this.registers[sReg1] = (this.registers[sReg1] < dReg ? 1 : 0);
+			break;
 		}
 		
 		break;
@@ -200,6 +205,10 @@ public class CPU extends Thread {
 		address =  (int)(this.IR >> 0  & sixteenBits);
 		
 		switch (opcode) {
+		    case Opcode.ST:
+			this.memoryWrite(this.registers[dReg], this.registers[bReg]);
+			break;
+		    
 		    case Opcode.LW:
 			this.registers[dReg] = this.memoryRead(this.registers[bReg]);
 			break;
@@ -285,13 +294,25 @@ public class CPU extends Thread {
 		reg2    = (byte)(this.IR >> 16 & fourBits);
 		address =  (int)(this.IR >> 0  & sixteenBits);
 		
+		this.currentProgram.ioOperations++;
+		
 		switch (opcode) {
 		    case Opcode.RD:
-			this.registers[reg1] = this.memoryRead(this.registers[reg2]);
+			if (address != 0) {
+			    this.registers[reg1] = this.memoryRead(address);
+			}
+			else {
+			    this.registers[reg1] = this.memoryRead(this.registers[reg2]);
+			}
 			break;
 			
 		    case Opcode.WR:
-			this.memoryWrite(address, this.registers[reg1]);
+			if (address != 0) {
+			    this.memoryWrite(address, this.registers[reg1]);
+			}
+			else {
+			    this.memoryWrite(this.registers[reg2], this.registers[reg1]);
+			}
 			break;
 		}
 		
@@ -308,6 +329,8 @@ public class CPU extends Thread {
 	while (true) {
 	    try {
 		if (this.state == CPUState.HALTED) {
+		    Accounting.onCPUStateChange(this);
+		    
 		    if (this.currentProgram != null) {
 			// tell scheduler that I have finished
 			System.out.println("CPU #" + this.cpuId + " - Finished executing Program " + this.currentProgram.pid);
@@ -318,11 +341,12 @@ public class CPU extends Thread {
 		    System.out.println("CPU #" + this.cpuId + " - Waiting for scheduler");
 		    
 		    this.os.schedule(this);
-		    if (this.currentProgram == null) return;
+		    if (this.currentProgram == null) break;
 		    
 		    System.out.println("CPU #" + this.cpuId + " - Program " + this.currentProgram.pid + " scheduled");
-
+		    
 		    this.state = CPUState.RUNNING;
+		    Accounting.onCPUStateChange(this);
 		}
 		else {
 		    this.execute();
@@ -330,8 +354,13 @@ public class CPU extends Thread {
 	    }
 	    catch (InterruptedException e) {
 		System.out.println("Got interupt");
-		if (this.vm.shuttingDown) return;
+		if (this.vm.shuttingDown) break;
 	    }
+//	    Accounting.onCPUStateChange(this);
 	}
+    }
+    
+    public String toString() {
+	return "CPU #" + this.cpuId;
     }
 }
