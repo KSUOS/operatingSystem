@@ -38,6 +38,9 @@ public class ProgramFileLoader {
 			try{
 				while((line = br.readLine()) != null){	
 					
+					/*
+					Create and initialize the Program object's pid, instructionCount, and diskAddress.
+					*/
 					if(line.contains("JOB")){
 						String[] s = line.split(" ");
 						Program p = new Program();
@@ -47,15 +50,23 @@ public class ProgramFileLoader {
 						p.diskAddress = instructionno;
 						programno++;
 					}
+					/*
+					Set the Program object's buffer size variables and write buffers into
+					disk.
+					*/
 					else if(line.contains("Data")){
 						String[] s = line.split(" ");
 						programs.get(programno-1).inputBufferSize = Integer.parseInt(s[2], 16);
 						programs.get(programno-1).outputBufferSize = Integer.parseInt(s[3], 16);
 						programs.get(programno-1).tempBufferSize = Integer.parseInt(s[4], 16);
 					}
+					
 					else if(line.contains("END")){
 						
 					}
+					/*
+					Write a programs instructions into disk.
+					*/
 					else{
 						line = line.replace(" ", "");
 						line = line.substring(2);
@@ -66,7 +77,6 @@ public class ProgramFileLoader {
 					}
 					lineno++;
 				}
-				//System.out.println(lineno);
 			}catch(IOException ex){
 				System.out.println("IOException");
 			}
