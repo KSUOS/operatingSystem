@@ -5,6 +5,7 @@
  */
 package operatingsystems.VM;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import operatingsystems.OS.*;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
@@ -19,7 +20,7 @@ public class VM {
     public ArrayList<CPU> cpus = new ArrayList<CPU>();
     public boolean shuttingDown = false;
     
-    public VM(int numberCPUs) {
+    public VM(int numberCPUs) throws FileNotFoundException {
 	this.disk = new Disk(this);
 	this.mmu = new MMU(this);
 	for (byte i = 0; i < numberCPUs; i++) {

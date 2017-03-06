@@ -36,52 +36,44 @@ public class Main {
 	
 	byte[] bytes = new byte[Disk.length * 4];
 	int[] ints = vm.disk.read(0, Disk.length);
-	for (int i = 0; i < Disk.length * 4; i+=4) {
-	    bytes[i + 3] = (byte)(ints[i/4] >> 24 & 0xFF);
-	    bytes[i + 2] = (byte)(ints[i/4] >> 16 & 0xFF);
-	    bytes[i + 1] = (byte)(ints[i/4] >> 8  & 0xFF);
+	for (int i = 0; i < Disk.length * 4; i+=4) {    
 	    bytes[i + 0] = (byte)(ints[i/4] >> 0  & 0xFF);
+	    bytes[i + 1] = (byte)(ints[i/4] >> 8  & 0xFF);
+	    bytes[i + 2] = (byte)(ints[i/4] >> 16 & 0xFF);
+	    bytes[i + 3] = (byte)(ints[i/4] >> 24 & 0xFF);
 	}
 	Files.write(Paths.get("disk.bin"), bytes);
 	
-	System.out.println("\n");
-	
+	String cpuStats = "CPUID,CPU Time\n";
 	for (CPU cpu : vm.cpus) {
 	    long total = 0;
 	    for (Long l : Accounting.cpuRunningTimes.get(cpu)) {
 		total += l;
 	    }
-	    System.out.println(cpu + " - Total CPU Time: " + ((float)total/1e6f) + " ms");
+	    cpuStats += cpu + "," + ((float)total/1e6f) + "\n";
 	}
+	Files.write(Paths.get("cpu_stats.csv"), cpuStats.getBytes());
 	
-	System.out.println("");
 	
+	String processStats = "Program,Wait Time,Ready Time,Run Time,I/O Operations,Instructions Executed\n";
 	for (Program p : os.programs) {
-	    System.out.print(p + " - ");
+	    processStats += p + ",";
 	    Hashtable<ProgramState, Long> times = Accounting.programTimes.get(p);
 	    
-	    DecimalFormat format = new DecimalFormat("#.###");
+	    DecimalFormat format = new DecimalFormat("#.#######");
 	    
 	    String waitingTime = format.format((float)(times.get(ProgramState.READY) - times.get(ProgramState.WAITING))/(1e6f));
-	    System.out.print("Wait: " + waitingTime + " ms");
-	    System.out.print("\t");
+	    processStats += waitingTime + ",";
 	    
 	    String readyTime = format.format((float)(times.get(ProgramState.RUNNING) - times.get(ProgramState.READY))/(1e6f));
-	    System.out.print("Ready: " + readyTime + " ms");
-	    System.out.print("  ");
+	    processStats += readyTime + ",";
 	    
 	    String runningTime = format.format((float)(times.get(ProgramState.DONE) - times.get(ProgramState.RUNNING))/(1e6f));
-	    System.out.print("Run: " + runningTime + " ms");
-	    System.out.print("\t");
+	    processStats += runningTime + ",";
 	    
-	    System.out.print("I/O Operations: " + (p.ioOperations));
-	    System.out.print("\t");
-	    System.out.print("Instructions Executed: " + (p.instructionsExecuted));
-	    System.out.print("\t");
-	    System.out.print("Instructions Length: " + (p.instructionCount));
-	    
-	    
-	    System.out.println("");
-	}	
-    }    
+	    processStats += p.ioOperations + "," + p.instructionsExecuted + "\n";
+	}
+	
+	Files.write(Paths.get("process_stats_" + s.getClass().getSimpleName()+ ".csv"), processStats.getBytes());
+    }
 }

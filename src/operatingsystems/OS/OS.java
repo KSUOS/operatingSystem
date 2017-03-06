@@ -5,6 +5,7 @@
  */
 package operatingsystems.OS;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 import operatingsystems.VM.*;
@@ -20,7 +21,7 @@ public class OS {
     
     public ArrayList<Program> programs = new ArrayList<Program>();
     
-    private Scheduler scheduler;    
+    private Scheduler scheduler;
     
     public OS(Scheduler scheduler, VM vm) {
 	this.scheduler = scheduler;
@@ -37,7 +38,7 @@ public class OS {
      * Schedules and runs all programs from the specified filename
      * @throws java.lang.InterruptedException
      */
-    public void run() throws InterruptedException {	
+    public void run() throws InterruptedException, IOException {	
 	// Add programs to the scheduler
 	for (Program p : this.programs) {
 	    System.out.println("Adding program " + p);
@@ -74,7 +75,7 @@ public class OS {
      * Called by the CPU when the CPU has finished processing
      * @param cpu 
      */
-    public synchronized void onHalted(CPU cpu) throws InterruptedException {
+    public synchronized void onHalted(CPU cpu) throws InterruptedException, IOException {
 	// Save output buffer
 	int[] outputBuffer = new int[cpu.currentProgram.outputBufferSize];
 	for (int i = 0; i < cpu.currentProgram.outputBufferSize; i++) {

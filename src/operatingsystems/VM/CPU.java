@@ -362,7 +362,6 @@ public class CPU extends Thread {
 		System.out.println("Got interupt");
 		if (this.vm.shuttingDown) break;
 	    }
-//	    Accounting.onCPUStateChange(this);
 	}
     }
     

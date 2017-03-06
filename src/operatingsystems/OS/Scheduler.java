@@ -5,6 +5,7 @@
  */
 package operatingsystems.OS;
 
+import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.concurrent.Semaphore;
 import operatingsystems.VM.*;
@@ -40,7 +41,7 @@ public abstract class Scheduler {
     /**
      * Loads as many processes as it can into memory from the waiting queue
      */
-    protected synchronized void load() throws InterruptedException {
+    protected synchronized void load() throws InterruptedException, IOException {
 	if (!this.programsRunning()) {
 	    if (!this.programsReady()) this.memoryOffset = 0;
 	    
@@ -100,7 +101,7 @@ public abstract class Scheduler {
      * Called by the OS when a CPU has finished processing a program
      * @param cpu 
      */
-    public synchronized void haltHandler(CPU cpu) throws InterruptedException {
+    public synchronized void haltHandler(CPU cpu) throws IOException, InterruptedException {
 	this.runningQueue.remove(cpu.currentProgram);
 	this.doneQueue.add(cpu.currentProgram);
 	cpu.currentProgram.state = ProgramState.DONE;
