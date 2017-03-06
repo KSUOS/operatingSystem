@@ -15,23 +15,23 @@ import operatingsystems.VM.*;
  */
 public class Accounting {
     
-    public static Hashtable<CPU, Instant> lastCPUHaltTime = new Hashtable<CPU, Instant>();
-    public static Hashtable<CPU, ArrayList<Duration>> cpuRunningTimes = new Hashtable<CPU, ArrayList<Duration>>();
+    public static Hashtable<CPU, Long> lastCPUHaltTime = new Hashtable<CPU, Long>();
+    public static Hashtable<CPU, ArrayList<Long>> cpuRunningTimes = new Hashtable<CPU, ArrayList<Long>>();
     
     public static void onCPUStateChange(CPU cpu) {
 	if (cpu.state == CPUState.HALTED) {
-	    lastCPUHaltTime.put(cpu, Instant.now());
+	    lastCPUHaltTime.put(cpu, System.nanoTime());
 	}
 	else {
-	    Duration d = Duration.between(lastCPUHaltTime.get(cpu), Instant.now());
-	    cpuRunningTimes.putIfAbsent(cpu, new ArrayList<Duration>());
-	    cpuRunningTimes.get(cpu).add(d);
+	    Long l = System.nanoTime() - lastCPUHaltTime.get(cpu);
+	    cpuRunningTimes.putIfAbsent(cpu, new ArrayList<Long>());
+	    cpuRunningTimes.get(cpu).add(l);
 	}
     }
     
-    public static Hashtable<Program, Hashtable<ProgramState, Instant>> programTimes = new Hashtable<Program, Hashtable<ProgramState, Instant>>();
+    public static Hashtable<Program, Hashtable<ProgramState, Long>> programTimes = new Hashtable<Program, Hashtable<ProgramState, Long>>();
     public static void onProgramStateChange(Program p) {
-	programTimes.putIfAbsent(p, new Hashtable<ProgramState, Instant>());
-	programTimes.get(p).put(p.state, Instant.now());
+	programTimes.putIfAbsent(p, new Hashtable<ProgramState, Long>());
+	programTimes.get(p).put(p.state, System.nanoTime());
     }
 }

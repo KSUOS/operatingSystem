@@ -236,36 +236,42 @@ public class CPU extends Thread {
 		    case Opcode.BEQ:
 			if (this.registers[bReg] == this.registers[dReg]) {
 			    this.PC = address / 4;
+			    return;
 			}
 			break;
 			
 		    case Opcode.BNE:
 			if (this.registers[bReg] != this.registers[dReg]) {
 			    this.PC = address / 4;
+			    return;
 			}
 			break;
 			
 		    case Opcode.BEZ:
 			if (this.registers[bReg] == 0) {
 			    this.PC = address / 4;
+			    return;
 			}
 			break;
 			
 		    case Opcode.BNZ:
 			if (this.registers[bReg] != 0) {
 			    this.PC = address / 4;
+			    return;
 			}
 			break;
 			
 		    case Opcode.BGZ:
 			if (this.registers[bReg] > 0) {
 			    this.PC = address / 4;
+			    return;
 			}
 			break;
 			
 		    case Opcode.BLZ:
 			if (this.registers[bReg] < 0) {
 			    this.PC = address / 4;
+			    return;
 			}
 			break;
 		}
