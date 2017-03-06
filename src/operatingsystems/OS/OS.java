@@ -43,7 +43,6 @@ public class OS {
 	for (Program p : this.programs) {
 	    System.out.println("Adding program " + p);
 	    this.scheduler.addProgram(p);
-	    /* noop */System.out.print("");
 	}
 	
 	for (CPU cpu : this.vm.cpus) {

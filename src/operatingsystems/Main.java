@@ -25,7 +25,7 @@ public class Main {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws Exception {
-	Scheduler s = new FIFOScheduler();
+	Scheduler s = new SJFScheduler();
 	
 	VM vm = new VM(4);
 	OS os = new OS(s,vm);
@@ -75,5 +75,12 @@ public class Main {
 	}
 	
 	Files.write(Paths.get("process_stats_" + s.getClass().getSimpleName()+ ".csv"), processStats.getBytes());
+	
+	System.out.println("Batch sizes:");
+	int pointer = 0;
+	for (Integer size : Accounting.batchSizes) {
+	    System.out.println("Batch #" + pointer + ": " + size * 4);
+	    pointer++;
+	}
     }
 }

@@ -5,7 +5,10 @@
  */
 package operatingsystems.VM;
 
+import java.io.IOException;
 import java.util.NoSuchElementException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import operatingsystems.OS.*;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
@@ -361,6 +364,8 @@ public class CPU extends Thread {
 	    catch (InterruptedException e) {
 		System.out.println("Got interupt");
 		if (this.vm.shuttingDown) break;
+	    } catch (IOException ex) {
+		System.err.println(ex.toString());
 	    }
 	}
     }

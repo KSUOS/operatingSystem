@@ -6,7 +6,7 @@
 package operatingsystems.OS;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
+import java.util.*;
 import java.util.concurrent.Semaphore;
 import operatingsystems.VM.*;
 
@@ -24,10 +24,10 @@ public abstract class Scheduler {
     
     private int memoryOffset = 0; //atomic because Java
     
-    protected ArrayDeque<Program> waitingQueue = new ArrayDeque<Program>();
-    protected ArrayDeque<Program> readyQueue = new ArrayDeque<Program>();
-    protected ArrayDeque<Program> runningQueue = new ArrayDeque<Program>();
-    protected ArrayDeque<Program> doneQueue = new ArrayDeque<Program>();
+    protected ArrayList<Program> waitingQueue = new ArrayList<Program>();
+    protected ArrayList<Program> readyQueue = new ArrayList<Program>();
+    protected ArrayList<Program> runningQueue = new ArrayList<Program>();
+    protected ArrayList<Program> doneQueue = new ArrayList<Program>();
     
     public Scheduler() {
     }
@@ -43,10 +43,13 @@ public abstract class Scheduler {
      */
     protected synchronized void load() throws InterruptedException, IOException {
 	if (!this.programsRunning()) {
-	    if (!this.programsReady()) this.memoryOffset = 0;
+	    if (!this.programsReady() && this.memoryOffset > 0) {
+		Accounting.addBatchSize(this.memoryOffset);
+		this.memoryOffset = 0;
+	    }
 	    
 	    while (this.waitingLock.tryAcquire()) {
-		Program program = this.waitingQueue.peekFirst();
+		Program program = this.waitingQueue.get(0);
 		System.out.println("Attempting to load program " + program.pid + " into RAM @ " + this.memoryOffset);
 		if (this.memoryOffset + program.size() > RAM.LENGTH) {
 		    System.out.println("Program " + program.pid + " is too big to fit in the remainder of RAM");
@@ -54,7 +57,7 @@ public abstract class Scheduler {
 		    break;
 		}
 		else {
-		    this.waitingQueue.pop();
+		    this.waitingQueue.remove(0);
 		    program.memoryAddress = this.memoryOffset;
 		    this.memoryOffset += program.size();
 		    
@@ -118,7 +121,7 @@ public abstract class Scheduler {
     public void schedule(CPU cpu) throws InterruptedException {
 	this.readyLock.acquire();
 	synchronized(readyQueue) {
-	    Program currentProgram = this.readyQueue.pop();
+	    Program currentProgram = this.readyQueue.remove(0);
 	    cpu.currentProgram = currentProgram;
 	
 	    runningQueue.add(currentProgram);

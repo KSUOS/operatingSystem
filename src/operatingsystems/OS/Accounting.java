@@ -34,4 +34,9 @@ public class Accounting {
 	programTimes.putIfAbsent(p, new Hashtable<ProgramState, Long>());
 	programTimes.get(p).put(p.state, System.nanoTime());
     }
+    
+    public static ArrayList<Integer> batchSizes = new ArrayList<Integer>();
+    public static void addBatchSize(int size) {
+	batchSizes.add(size);
+    }
 }
