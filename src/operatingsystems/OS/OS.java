@@ -18,8 +18,12 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 public class OS {
     private ProgramFileLoader pfl;
     public VM vm;
+    private PageManager pageManager;
     
     public ArrayList<Program> programs = new ArrayList<Program>();
+
+    private Semaphore ioWaitQueueLock = new Semaphore(1);
+    private ArrayList<Program> ioWaitQueue = new ArrayList<Program>();
     
     private Scheduler scheduler;
     
@@ -28,6 +32,7 @@ public class OS {
 	this.scheduler.os = this;
 	this.vm = vm;
 	this.pfl = new ProgramFileLoader(this);
+	this.pageManager = new PageManager(this);
     }
     
     public void load(String filename) throws InterruptedException {
@@ -38,7 +43,7 @@ public class OS {
      * Schedules and runs all programs from the specified filename
      * @throws java.lang.InterruptedException
      */
-    public void run() throws InterruptedException, IOException {	
+    public void run() throws InterruptedException, IOException, PageFaultException {	
 	// Add programs to the scheduler
 	for (Program p : this.programs) {
 	    System.out.println("Adding program " + p);
@@ -62,27 +67,62 @@ public class OS {
      * @param cpu 
      * @throws java.lang.InterruptedException 
      */
-    public void schedule(CPU cpu) throws InterruptedException {
+    public void schedule(CPU cpu) throws InterruptedException, IOException {
 	if (!this.scheduler.programsWaiting() && !this.scheduler.programsReady() && !this.scheduler.programsRunning()) {
 	    this.shutdown();
 	    return;
 	}
+	
+	this.servicePageFaults();
 	this.scheduler.schedule(cpu);
+    }
+    
+    /**
+     * Called by the CPU when the CPU page faulted
+     * @param cpu 
+     */
+    public void onFault(CPU cpu) {
+	Program program = cpu.currentProgram;
+	
+	program.pageFaults++;
+	
+	System.out.println("Adding program " + program.pid + " to the iowait queue");
+	
+	this.ioWaitQueue.add(program);
+	
+	cpu.state = CPUState.HALTED;
+	Accounting.onCPUStateChange(cpu);
+	cpu.currentProgram = null;
+    }
+    
+    private void servicePageFaults() throws InterruptedException, IOException {
+	this.ioWaitQueueLock.acquire();
+	System.out.println("Servicing " + this.ioWaitQueue.size() + " page faults");
+	ArrayList<Program> toRemove = new ArrayList<Program>();
+	for (Program program : this.ioWaitQueue) {
+	    boolean successfulLoad = this.pageManager.loadPage(program, program.faultAddress);
+	    if (successfulLoad) {
+		this.scheduler.wait(program);
+		toRemove.add(program);
+	    }
+	}
+	
+	for (Program program : toRemove) {
+	    this.ioWaitQueue.remove(program);
+	}
+	this.ioWaitQueueLock.release();
     }
     
     /**
      * Called by the CPU when the CPU has finished processing
      * @param cpu 
      */
-    public synchronized void onHalted(CPU cpu) throws InterruptedException, IOException {
-	// Save output buffer
-	int[] outputBuffer = new int[cpu.currentProgram.outputBufferSize];
-	for (int i = 0; i < cpu.currentProgram.outputBufferSize; i++) {
-	    outputBuffer[i] = this.vm.mmu.read(cpu.currentProgram, cpu.currentProgram.instructionCount + cpu.currentProgram.inputBufferSize + i);
-	}
-	this.vm.disk.write(cpu.currentProgram.diskAddress + cpu.currentProgram.instructionCount + cpu.currentProgram.inputBufferSize, outputBuffer);
-	
-	this.scheduler.haltHandler(cpu);
+    public synchronized void onHalted(CPU cpu) throws InterruptedException, IOException, PageFaultException {	
+	this.scheduler.halt(cpu.currentProgram);
+	this.pageManager.freeProgram(cpu.currentProgram);
+	cpu.currentProgram = null;
+	cpu.state = CPUState.HALTED;
+	Accounting.onCPUStateChange(cpu);
     }
     
     public synchronized void shutdown() throws InterruptedException {

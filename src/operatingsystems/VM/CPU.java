@@ -10,7 +10,6 @@ import java.util.NoSuchElementException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import operatingsystems.OS.*;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 // IO   - (00) OPCODE(6) SREG(4) SREG(4) DREG(4) (000000000000)
 // COND - (01) OPCODE(6) BREG(4) DREG(4) Address(16)
@@ -104,7 +103,7 @@ public class CPU extends Thread {
      * @param offset
      * @return 
      */
-    private int memoryRead(int offset) {
+    private int memoryRead(int offset) throws PageFaultException {
 	return this.vm.mmu.read(this.currentProgram, offset / 4);
     }
     
@@ -113,21 +112,21 @@ public class CPU extends Thread {
      * @param offset
      * @return 
      */
-    private void memoryWrite(int offset, int value) {
+    private void memoryWrite(int offset, int value) throws PageFaultException {
 	this.vm.mmu.write(this.currentProgram, offset / 4, value);
     }
     
     /**
      * Read the instruction located at the PC into the IR
      */
-    private void fetch() {
+    private void fetch() throws PageFaultException {
 	this.IR = this.vm.mmu.read(this.currentProgram, this.PC);
     }   
     
     /**
      * Fetch instruction, parse, and execute current instruction
      */
-    private void execute() throws InterruptedException {
+    private void execute() throws InterruptedException, PageFaultException {
 	// No program to execute
 	if (this.currentProgram == null) {
 	    this.state = CPUState.HALTED;
@@ -153,8 +152,6 @@ public class CPU extends Thread {
 	final int fourBits = 0b1111;
 	final int sixteenBits = 0b1111111111111111;
 	final int twentyFourBits = 0b111111111111111111111111;
-	
-	this.currentProgram.instructionsExecuted++;
 	
 	switch (type) {
 	    case Type.Arithmetic:
@@ -239,6 +236,7 @@ public class CPU extends Thread {
 		    case Opcode.BEQ:
 			if (this.registers[bReg] == this.registers[dReg]) {
 			    this.PC = address / 4;
+			    this.currentProgram.instructionsExecuted++;
 			    return;
 			}
 			break;
@@ -246,6 +244,7 @@ public class CPU extends Thread {
 		    case Opcode.BNE:
 			if (this.registers[bReg] != this.registers[dReg]) {
 			    this.PC = address / 4;
+			    this.currentProgram.instructionsExecuted++;
 			    return;
 			}
 			break;
@@ -253,6 +252,7 @@ public class CPU extends Thread {
 		    case Opcode.BEZ:
 			if (this.registers[bReg] == 0) {
 			    this.PC = address / 4;
+			    this.currentProgram.instructionsExecuted++;
 			    return;
 			}
 			break;
@@ -260,6 +260,7 @@ public class CPU extends Thread {
 		    case Opcode.BNZ:
 			if (this.registers[bReg] != 0) {
 			    this.PC = address / 4;
+			    this.currentProgram.instructionsExecuted++;
 			    return;
 			}
 			break;
@@ -267,6 +268,7 @@ public class CPU extends Thread {
 		    case Opcode.BGZ:
 			if (this.registers[bReg] > 0) {
 			    this.PC = address / 4;
+			    this.currentProgram.instructionsExecuted++;
 			    return;
 			}
 			break;
@@ -274,6 +276,7 @@ public class CPU extends Thread {
 		    case Opcode.BLZ:
 			if (this.registers[bReg] < 0) {
 			    this.PC = address / 4;
+			    this.currentProgram.instructionsExecuted++;
 			    return;
 			}
 			break;
@@ -293,6 +296,7 @@ public class CPU extends Thread {
 			this.state = CPUState.HALTED;
 			this.PC = 0;
 			this.IR = 0;
+			this.currentProgram.instructionsExecuted++;
 			return;
 		}
 		
@@ -302,9 +306,7 @@ public class CPU extends Thread {
 		reg1    = (byte)(this.IR >> 20 & fourBits);
 		reg2    = (byte)(this.IR >> 16 & fourBits);
 		address =  (int)(this.IR >> 0  & sixteenBits);
-		
-		this.currentProgram.ioOperations++;
-		
+				
 		switch (opcode) {
 		    case Opcode.RD:
 			if (address != 0) {
@@ -325,9 +327,11 @@ public class CPU extends Thread {
 			break;
 		}
 		
+		this.currentProgram.ioOperations++;
 		break;
 	}
 	
+	this.currentProgram.instructionsExecuted++;
 	this.PC++;
     }
     
@@ -356,6 +360,11 @@ public class CPU extends Thread {
 		    
 		    this.state = CPUState.RUNNING;
 		    Accounting.onCPUStateChange(this);
+		    
+		    this.PC = this.currentProgram.cpuState[0];
+		    for (int i = 0; i < 16; i++) {
+			this.registers[i] = this.currentProgram.cpuState[i + 1];
+		    }
 		}
 		else {
 		    this.execute();
@@ -366,6 +375,15 @@ public class CPU extends Thread {
 		if (this.vm.shuttingDown) break;
 	    } catch (IOException ex) {
 		System.err.println(ex.toString());
+	    } catch (PageFaultException ex) {
+		// Save CPU state into program
+		this.currentProgram.cpuState[0] = this.PC;
+		for (int i = 0; i < 16; i++) {
+		    this.currentProgram.cpuState[i + 1] = this.registers[i];
+		}
+		
+		// Alert OS of page fault
+		this.os.onFault(this);
 	    }
 	}
     }

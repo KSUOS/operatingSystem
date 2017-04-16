@@ -60,7 +60,7 @@ public class ProgramFileLoader {
 			currentProgram.outputBufferSize = Integer.parseInt(s[3], 16);
 			currentProgram.tempBufferSize = Integer.parseInt(s[4], 16);
 		    } else if (line.contains("END")) {
-			
+//			break;
 		    }
 		    /*
 			Write a programs instructions into disk.

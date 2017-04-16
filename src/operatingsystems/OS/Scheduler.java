@@ -41,40 +41,53 @@ public abstract class Scheduler {
     /**
      * Loads as many processes as it can into memory from the waiting queue
      */
-    protected synchronized void load() throws InterruptedException, IOException {
-	if (!this.programsRunning()) {
-	    if (!this.programsReady() && this.memoryOffset > 0) {
-		Accounting.addBatchSize(this.memoryOffset);
-		this.memoryOffset = 0;
-	    }
-	    
+    protected synchronized void load() throws InterruptedException, IOException, PageFaultException {
+	if (this.os.vm.mmu.pageSize != 0) {
 	    while (this.waitingLock.tryAcquire()) {
 		Program program = this.waitingQueue.get(0);
-		System.out.println("Attempting to load program " + program.pid + " into RAM @ " + this.memoryOffset);
-		if (this.memoryOffset + program.size() > RAM.LENGTH) {
-		    System.out.println("Program " + program.pid + " is too big to fit in the remainder of RAM");
-		    this.waitingLock.release();
-		    break;
+		this.waitingQueue.remove(program);
+
+		System.out.println("Adding program " + program.pid + " to the ready queue");
+		this.readyQueue.add(program);
+		program.state = ProgramState.READY;
+		Accounting.onProgramStateChange(program);
+		this.readyLock.release(1);
+	    }
+	}
+	else {
+	    if (!this.programsRunning()) {
+		if (!this.programsReady() && this.memoryOffset > 0) {
+		    Accounting.addBatchSize(this.memoryOffset);
+		    this.memoryOffset = 0;
 		}
-		else {
-		    this.waitingQueue.remove(0);
-		    program.memoryAddress = this.memoryOffset;
-		    this.memoryOffset += program.size();
-		    
-		    System.out.println("Loading program " + program.pid + " into RAM @ " + this.memoryOffset);
-		    this.os.vm.mmu.write(program, 0, this.os.vm.disk.read(program.diskAddress, program.size()));
-		    
-		    System.out.println("Adding program " + program.pid + " to the ready queue");
-		    this.readyQueue.add(program);
-		    program.state = ProgramState.READY;
-		    Accounting.onProgramStateChange(program);
-		    
-		    this.readyLock.release();
+
+		while (this.waitingLock.tryAcquire()) {
+		    Program program = this.waitingQueue.get(0);
+		    System.out.println("Attempting to load program " + program.pid + " into RAM @ " + this.memoryOffset);
+		    if (this.memoryOffset + program.size() > RAM.LENGTH) {
+			System.out.println("Program " + program.pid + " is too big to fit in the remainder of RAM");
+			this.waitingLock.release();
+			break;
+		    }
+		    else {
+			this.waitingQueue.remove(0);
+			program.memoryAddress = this.memoryOffset;
+			this.memoryOffset += program.size();
+
+			System.out.println("Loading program " + program.pid + " into RAM @ " + this.memoryOffset);
+			this.os.vm.mmu.write(program, 0, this.os.vm.disk.read(program.diskAddress, program.size()));
+
+			System.out.println("Adding program " + program.pid + " to the ready queue");
+			this.readyQueue.add(program);
+			program.state = ProgramState.READY;
+			Accounting.onProgramStateChange(program);
+
+			this.readyLock.release();
+		    }
 		}
 	    }
 	}
-    }
-    
+    }    
     
     /**
      * Returns whether or not there are programs ready for execution
@@ -100,16 +113,21 @@ public abstract class Scheduler {
 	return runningQueue.size() > 0;
     }
     
+    public void wait(Program program) throws InterruptedException {
+	this.runningQueue.remove(program);
+	this.readyQueue.add(program);
+	this.readyLock.release(1);
+    }
+    
     /**
      * Called by the OS when a CPU has finished processing a program
      * @param cpu 
      */
-    public synchronized void haltHandler(CPU cpu) throws IOException, InterruptedException {
-	this.runningQueue.remove(cpu.currentProgram);
-	this.doneQueue.add(cpu.currentProgram);
-	cpu.currentProgram.state = ProgramState.DONE;
-	Accounting.onProgramStateChange(cpu.currentProgram);
-	cpu.currentProgram = null;
+    public synchronized void halt(Program program) throws IOException, InterruptedException, PageFaultException {
+	this.runningQueue.remove(program);
+	this.doneQueue.add(program);
+	program.state = ProgramState.DONE;
+	Accounting.onProgramStateChange(program);
 	this.load();
     }
     

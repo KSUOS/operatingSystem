@@ -5,6 +5,8 @@
  */
 package operatingsystems.OS;
 
+import java.util.ArrayList;
+
 /**
  *
  * @author brandon
@@ -17,6 +19,8 @@ public class Program {
     
     public ProgramState state = ProgramState.WAITING;
     
+    public ArrayList<PageTableEntry> pageTable = new ArrayList<PageTableEntry>();
+    
     // Stats
     public int instructionCount = 0;
     public int inputBufferSize = 0;
@@ -25,6 +29,10 @@ public class Program {
     
     public int ioOperations = 0;
     public int instructionsExecuted = 0;
+    public int pageFaults = 0;
+    
+    public int faultAddress;
+    public int[] cpuState = new int[17];
     
     public final int size() {
 	return this.instructionCount + this.inputBufferSize + this.outputBufferSize + this.tempBufferSize;

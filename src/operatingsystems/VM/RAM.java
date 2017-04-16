@@ -26,7 +26,7 @@ public class RAM {
      * @param offset
      * @return 
      */
-    int read(int offset) {
+    public int read(int offset) {
 	if (offset > 1024 || offset < 0) throw new Error("Memory read offset out of bounds");
 	return this.memory[offset];
     }
@@ -36,7 +36,7 @@ public class RAM {
      * @param offset
      * @param word 
      */
-    void write(int offset, int word) {
+    public void write(int offset, int word) {
 	if (offset > 1024 || offset < 0) throw new Error("Memory write offset out of bounds");
 	this.memory[offset] = word;
     }

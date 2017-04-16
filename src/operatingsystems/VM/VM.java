@@ -20,9 +20,9 @@ public class VM {
     public ArrayList<CPU> cpus = new ArrayList<CPU>();
     public boolean shuttingDown = false;
     
-    public VM(int numberCPUs) throws FileNotFoundException {
+    public VM(int numberCPUs, int pageSize) throws FileNotFoundException {
 	this.disk = new Disk(this);
-	this.mmu = new MMU(this);
+	this.mmu = new MMU(this,pageSize);
 	for (byte i = 0; i < numberCPUs; i++) {
 	    this.cpus.add(new CPU(this, i));
 	}

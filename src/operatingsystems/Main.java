@@ -12,6 +12,8 @@ import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.time.*;
 import java.util.*;
+import java.util.Map.Entry;
+import javafx.util.Pair;
 import operatingsystems.OS.*;
 import operatingsystems.VM.*;
 
@@ -25,9 +27,11 @@ public class Main {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws Exception {
-	Scheduler s = new SJFScheduler();
+	Scheduler s = new FIFOScheduler();
 	
-	VM vm = new VM(4);
+	int pageSize = 6;
+	
+	VM vm = new VM(1,pageSize);
 	OS os = new OS(s,vm);
 	
 	os.load("ProgramFile.txt");
@@ -55,7 +59,7 @@ public class Main {
 	Files.write(Paths.get("cpu_stats.csv"), cpuStats.getBytes());
 	
 	
-	String processStats = "Program,Wait Time,Ready Time,Run Time,I/O Operations,Instructions Executed\n";
+	String processStats = "Program,Wait Time,Ready Time,Run Time,I/O Operations,Instructions Executed,Page Faults\n";
 	for (Program p : os.programs) {
 	    processStats += p + ",";
 	    Hashtable<ProgramState, Long> times = Accounting.programTimes.get(p);
@@ -71,16 +75,24 @@ public class Main {
 	    String runningTime = format.format((float)(times.get(ProgramState.DONE) - times.get(ProgramState.RUNNING))/(1e6f));
 	    processStats += runningTime + ",";
 	    
-	    processStats += p.ioOperations + "," + p.instructionsExecuted + "\n";
+	    processStats += p.ioOperations + "," + p.instructionsExecuted + "," + p.pageFaults + "\n";
 	}
 	
 	Files.write(Paths.get("process_stats_" + s.getClass().getSimpleName()+ ".csv"), processStats.getBytes());
 	
-	System.out.println("Batch sizes:");
-	int pointer = 0;
-	for (Integer size : Accounting.batchSizes) {
-	    System.out.println("Batch #" + pointer + ": " + size * 4);
-	    pointer++;
+	if (pageSize == 0) {
+	    System.out.println("Batch sizes:");
+	    int pointer = 0;
+	    for (Integer size : Accounting.batchSizes) {
+		System.out.println("Batch #" + pointer + ": " + size * 4);
+		pointer++;
+	    }
+	}
+	else {
+	    System.out.println("Memory usage:");
+	    for (Pair<Long, Integer> pair : Accounting.pageUsage) {
+		System.out.println(pair.getKey()+ "," + pair.getValue().floatValue()/ ((float)RAM.LENGTH / (float)os.vm.mmu.pageSize));
+	    }
 	}
     }
 }
