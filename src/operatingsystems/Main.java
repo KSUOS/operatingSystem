@@ -31,7 +31,7 @@ public class Main {
 	
 	int pageSize = 6;
 	
-	VM vm = new VM(1,pageSize);
+	VM vm = new VM(4,pageSize);
 	OS os = new OS(s,vm);
 	
 	os.load("ProgramFile.txt");

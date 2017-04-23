@@ -114,7 +114,7 @@ public class PageManager {
     private int takeNextFreePage() {
 	for(int i = 0; i < this.numPages; i++) {
 	    Boolean taken = this.pageStatus.get(i);
-	    if(!taken) {
+	    if(taken.booleanValue() == false) {
 		this.pageStatus.set(i, Boolean.TRUE);
 		return i * pageSize;
 	    }

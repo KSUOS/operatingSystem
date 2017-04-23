@@ -22,7 +22,6 @@ public class OS {
     
     public ArrayList<Program> programs = new ArrayList<Program>();
 
-    private Semaphore ioWaitQueueLock = new Semaphore(1);
     private ArrayList<Program> ioWaitQueue = new ArrayList<Program>();
     
     private Scheduler scheduler;
@@ -88,7 +87,9 @@ public class OS {
 	
 	System.out.println("Adding program " + program.pid + " to the iowait queue");
 	
-	this.ioWaitQueue.add(program);
+	synchronized (this.ioWaitQueue) {
+	    this.ioWaitQueue.add(program);
+	}
 	
 	cpu.state = CPUState.HALTED;
 	Accounting.onCPUStateChange(cpu);
@@ -96,21 +97,21 @@ public class OS {
     }
     
     private void servicePageFaults() throws InterruptedException, IOException {
-	this.ioWaitQueueLock.acquire();
-	System.out.println("Servicing " + this.ioWaitQueue.size() + " page faults");
-	ArrayList<Program> toRemove = new ArrayList<Program>();
-	for (Program program : this.ioWaitQueue) {
-	    boolean successfulLoad = this.pageManager.loadPage(program, program.faultAddress);
-	    if (successfulLoad) {
-		this.scheduler.wait(program);
-		toRemove.add(program);
+	synchronized (this.ioWaitQueue) {
+	    System.out.println("Servicing " + this.ioWaitQueue.size() + " page faults. " + (this.pageManager.usedPages / this.pageManager.pageStatus.size()) * 100 + "% memory used.");
+	    ArrayList<Program> toRemove = new ArrayList<Program>();
+	    for (Program program : this.ioWaitQueue) {
+		boolean successfulLoad = this.pageManager.loadPage(program, program.faultAddress);
+		if (successfulLoad) {
+		    this.scheduler.wait(program);
+		    toRemove.add(program);
+		}
+	    }
+
+	    for (Program program : toRemove) {
+		this.ioWaitQueue.remove(program);
 	    }
 	}
-	
-	for (Program program : toRemove) {
-	    this.ioWaitQueue.remove(program);
-	}
-	this.ioWaitQueueLock.release();
     }
     
     /**
