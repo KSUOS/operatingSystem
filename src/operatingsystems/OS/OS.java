@@ -98,7 +98,7 @@ public class OS {
     
     private void servicePageFaults() throws InterruptedException, IOException {
 	synchronized (this.ioWaitQueue) {
-	    System.out.println("Servicing " + this.ioWaitQueue.size() + " page faults. " + (this.pageManager.usedPages / this.pageManager.pageStatus.size()) * 100 + "% memory used.");
+	    System.out.println("Servicing " + this.ioWaitQueue.size() + " page faults");
 	    ArrayList<Program> toRemove = new ArrayList<Program>();
 	    for (Program program : this.ioWaitQueue) {
 		boolean successfulLoad = this.pageManager.loadPage(program, program.faultAddress);

@@ -27,9 +27,9 @@ public class Main {
      * @param args the command line arguments
      */
     public static void main(String[] args) throws Exception {
-	Scheduler s = new FIFOScheduler();
+	Scheduler s = new SJFScheduler();
 	
-	int pageSize = 6;
+	int pageSize = 4;
 	
 	VM vm = new VM(4,pageSize);
 	OS os = new OS(s,vm);
